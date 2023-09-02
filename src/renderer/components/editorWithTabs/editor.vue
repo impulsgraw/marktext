@@ -77,6 +77,8 @@ import { shell } from 'electron'
 import path from 'path'
 import log from 'electron-log'
 import { mapState } from 'vuex'
+import fs from 'fs'
+
 // import ViewImage from 'view-image'
 import { isChildOfDirectory } from 'common/filesystem/paths'
 import Muya from 'muya/lib'
@@ -110,6 +112,8 @@ import 'muya/themes/default.css'
 import '@/assets/themes/codemirror/one-dark.css'
 // import 'view-image/lib/imgViewer.css'
 import CloseIcon from '@/assets/icons/close.svg'
+
+import imageType from 'image-type'
 
 const STANDAR_Y = 320
 
@@ -712,6 +716,35 @@ export default {
         }
       }
 
+      const fileObjectToBase64 = async (file) => {
+        return new Promise((resolve, reject) => {
+          let reader = new FileReader()
+          reader.readAsDataURL(file)
+          reader.onload = function () {
+            resolve(reader.result)
+          }
+          reader.onerror = reject
+        })
+      }
+
+      const readFileToBase64 = async (path) => {
+        return new Promise((resolve, reject) => {
+          // read binary data from file
+          fs.readFile(path, (err, data) => {
+            if (err) {
+              reject(err)
+            }
+
+            const determinedImageType = imageType(data)
+            if (!determinedImageType) {
+              reject(new Error('Could not determine image type'))
+            }
+
+            resolve(`data:${determinedImageType.mime};base64,${data.toString('base64')}`)
+          })
+        })
+      }
+
       const getResolvedImagePath = imagePath => {
         const replacement = isTabSavedOnDisk
           // Filename w/o extension
@@ -757,6 +790,15 @@ export default {
               destImagePath = await moveToRelativeFolder(relativeBasePath, resolvedImageRelativeDirectoryName, pathname, destImagePath)
             }
           }
+          break
+        }
+        case 'inline': {
+          if (typeof image === 'string') {
+            destImagePath = await readFileToBase64(image)
+          } else {
+            destImagePath = await fileObjectToBase64(image)
+          }
+
           break
         }
       }

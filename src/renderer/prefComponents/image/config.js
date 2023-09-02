@@ -7,4 +7,7 @@ export const imageActions = [{
 }, {
   label: 'Keep original location',
   value: 'path'
+}, {
+  label: 'Insert inline base64 image',
+  value: 'inline'
 }]
